@@ -1,0 +1,601 @@
+Skip to content
+DEV Community
+Search...
+
+Log in
+Create account
+
+11
+Jump to Comments
+268
+Save
+
+Cover image for Setting up a CI/CD workflow on GitHub Actions for a React App (with GitHub Pages and Codecov)
+Dyarlen Iber
+Dyarlen Iber
+Posted on Jun 19, 2020 • Updated on Jun 28, 2020
+
+
+141
+
+31
+
+3
+
+3
+
+3
+Setting up a CI/CD workflow on GitHub Actions for a React App (with GitHub Pages and Codecov)
+#
+github
+#
+react
+#
+devops
+#
+javascript
+In this tutorial, I'm going to show you how to create a simple workflow that I use on my personal projects with React.
+
+This workflow created on GitHub Actions will be responsible for automatically test the source code, generate a test coverage report and upload it on Codecov, build and deploy the project on GitHub Pages. All these jobs are activated by a push or pull request event on master branch.
+
+All the source code can be found in this repository:
+GitHub logo dyarleniber / react-workflow-gh-actions
+Source code of the post: Setting up a CI/CD workflow on GitHub Actions for a React App (with GitHub Pages and Codecov)
+Getting started
+GitHub Actions allows you automate, customize, and execute software development workflows right in your GitHub repository.
+
+A workflow is a configurable automated process made up of one or more jobs. You can configure your workflows to run when specific activity on GitHub happens, at a scheduled time, or when an event outside of GitHub occurs.
+
+The workflow configuration is define by a YAML file. GitHub provides preconfigured workflow templates.
+
+First, on your React App GitHub repository, navigate to the main page of the repository, click Actions.
+
+Then, you'll see suggestions of CI templates that are the best fit for your project. You can use workflow templates as a starting place to build your custom workflow.
+In this case, click Set up this workflow, under the name of the template Node.js.
+
+Actions on GitHub page
+
+Finally, you'll see a default YAML file like this:
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Node.js CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [10.x, 12.x, 14.x]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - run: npm ci
+    - run: npm run build --if-present
+    - run: npm test
+There are 2 events that trigger the workflow on push or pull request. The virtual environment used to run the workflow is an Ubuntu machine in the latest version.
+
+In the steps section, 2 actions and 3 NPM scripts are being used. The first action actions/checkout@v2 is a standard that you must include in your workflow before other actions when your workflow requires a copy of your repository's code. The second one, as the name suggests, it is a set up for Node.js, as you can see, the set up is made in different versions of Node.js, through an array with all the versions used.
+
+Besides these actions, you can browse and search for actions in GitHub Marketplace to use in your workflows.
+
+GitHub Marketplace is a central location for you to find actions created by the GitHub community.
+
+Test coverage report generation
+Let's start changing the name, the Node.js version and the NPM scripts used in the workflow:
+name: CI/CD
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run the tests
+      run: npm test
+
+    - name: Build
+      run: npm run build
+After set up Node.js, now, we are installing the dependencies, running the tests and building the application.
+
+You can define a name for each step.
+
+Now, we are going to use Codecov to upload and compare test coverage reports. Codecov is one of the most popular code coverage solution, and it's totally free for open source projects.
+
+First, go to the Codecov website and create an account, you can use your GitHub account to sign up.
+
+Next, access your account on the website, click Repositories, after, click Add new repository and choose the repository you want to use.
+
+Codecov interface
+
+You will see a token, that token will not be useful if your repository is public, otherwise, if your repository is private, you must copy it, as you will need to use it later.
+
+There is an action available in GitHub Marketplace, that easily upload reports to Codecov, we will use it.
+
+The first thing we need to do is change the npm test command to generate the test reports:
+- name: Run the tests and generate coverage report
+  run: npm test -- --coverage
+After that, include the following action in the workflow:
+- name: Upload coverage to Codecov
+  uses: codecov/codecov-action@v1
+If you repository is private, you must include the codecov token, through a secret that makes your token accessible in the workflow. Like this:
+- name: Upload coverage to Codecov
+  uses: codecov/codecov-action@v1
+  with:
+    token: ${{ secrets.CODECOV_TOKEN }}
+We'll create a secret on GitHub for deployment in a moment.
+
+Deployment on GitHub Pages
+We'll use GitHub Pages to deploy our application. GitHub Pages are public pages hosted and published through GitHub.
+
+Before adding new steps to the workflow, we need to install and configure a new package in the project.
+
+Add homepage to package.json.
+Open your package.json and add a homepage field for your project:
+"homepage": "https://myusername.github.io/my-app",
+Install gh-pages and add deploy to scripts in package.json.
+Run:
+$ npm install --save gh-pages
+Add the following scripts in your package.json:
+"predeploy": "npm run build",
+"deploy": "gh-pages -d build",
+The predeploy script will run automatically before deploy is run.
+
+Now we are going to create a new access token, in order to deploy our application through the workflow.
+
+Go to the Personal access tokens area in the Developer settings of your GitHub profile and click Generate new token.
+
+Creating personal access token
+
+Fill up a note (What's this token for?) and in the repo scope, select only the first 4 options.
+
+personal access token scope
+
+Copy the generated token.
+
+Now, in order to use this token in the workflow on GitHub Actions, we have to create a secret for our repository.
+
+Secrets are encrypted environment variables that allows you to store sensitive information in your repository. The secrets you create are available to use in GitHub Actions workflows.
+
+On GitHub, navigate to the main page of the repository, under your repository name, click Settings. In the left sidebar, click Secrets. And finally, Click Add a new secret.
+
+Alt Text
+
+Type a name for your secret in the Name input box, like ACTIONS_DEPLOY_ACCESS_TOKEN.
+
+Enter the value for your secret (which should be the personal access token we just created).
+
+Click Add secret.
+
+Finally, we can include the script npm run deploy as the last step in our workflow.
+
+But, before that, we should make some configurations in the Git. To ensure that it will have all the necessary access to be able to deploy the application.
+
+Your last step on your workflow should be some like this:
+- name: Deploy
+  run: |
+    git config --global user.name $user_name
+    git config --global user.email $user_email
+    git remote set-url origin https://${github_token}@github.com/${repository}
+    npm run deploy
+  env:
+    user_name: 'github-actions[bot]'
+    user_email: 'github-actions[bot]@users.noreply.github.com'
+    github_token: ${{ secrets.ACTIONS_DEPLOY_ACCESS_TOKEN }}
+    repository: ${{ github.repository }}
+The name and email information need not necessarily be your real information. And you must replace ACTIONS_DEPLOY_ACCESS_TOKEN with the name of the secret you just created.
+
+The github.repository variable will automatically get the name of your repository.
+
+To learn more about environment variables on GitHub Actions, please, read this article.
+
+After adding the deploy command on your workflow, click Start commit, and click Commit new file.
+
+Workflow commit
+
+Your final workflow file should be like this:
+name: CI/CD
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run the tests and generate coverage report
+      run: npm test -- --coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+
+    - name: Build
+      run: npm run build
+
+    - name: Deploy
+      run: |
+        git config --global user.name $user_name
+        git config --global user.email $user_email
+        git remote set-url origin https://${github_token}@github.com/${repository}
+        npm run deploy
+      env:
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        github_token: ${{ secrets.ACTIONS_DEPLOY_ACCESS_TOKEN }}
+        repository: ${{ github.repository }}
+Make sure GitHub Pages option in your GitHub project settings is set to use the gh-pages branch:
+gh-pages branch
+
+Now, in every push or pull request event on master branch, the CI/CD workflow will be activated. And you will be able to see if all steps have passed or not.
+
+Workflow execution
+
+Adding status badges
+You can also add a workflow status badge to your repository. Status badges show whether a workflow is currently failing or passing. A common place to add a status badge is in the README.md file of your repository, but you can add it to any web page you'd like.
+
+This is the default URL for adding a workflow status badge provided by GitHub Actions:
+https://github.com/<OWNER>/<REPOSITORY>/workflows/<WORKFLOW_NAME>/badge.svg
+If your workflow uses the name keyword, you must reference the workflow by name. If the name of your workflow contains white space, you'll need to replace the space with the URL encoded string %20.
+
+For more information about GitHub Actions workflow status badge, read this article.
+
+For instance, this will be the badge that I will put in my README.md file:
+![CI/CD](https://github.com/dyarleniber/react-workflow-gh-actions/workflows/CI/CD/badge.svg)
+Codecov also provided a badge you can use in your projects. This is an example of an URL:
+[![codecov](https://codecov.io/gh/<OWNER>/<REPOSITORY>/branch/master/graph/badge.svg)](https://codecov.io/gh/<OWNER>/<REPOSITORY>)
+In my case, my URL will be:
+[![codecov](https://codecov.io/gh/dyarleniber/react-workflow-gh-actions/branch/master/graph/badge.svg)](https://codecov.io/gh/dyarleniber/react-workflow-gh-actions)
+You can also use this amazing website: Shields.io to customise your badges. Accessing the website you will see many options of badges categories you can use, such as Build, Code Coverage, Size, Downloads, License and so on. In each category you can select the service you are using, fill up the name of the repository, customise as you prefer, and copy the link of the badge.
+
+For example, this will be my custom coverage badge:
+[![Codecov](https://img.shields.io/codecov/c/github/dyarleniber/react-workflow-gh-actions)](https://codecov.io/gh/dyarleniber/react-workflow-gh-actions)
+I also included a license badge:
+![License](https://img.shields.io/github/license/dyarleniber/react-workflow-gh-actions)
+These badges in your README.md file, should look like this:
+
+Badges
+
+You can explore the Shields.io website and see the different options of badges available.
+
+Bonus: Caching dependencies
+To make your workflows faster and more efficient, you can create and use caches for dependencies and other commonly reused files.
+
+GitHub can cache dependencies you frequently use in workflows. Jobs on GitHub-hosted runners start in a clean virtual environment and must download dependencies each time, causing increased network utilization, longer runtime, and increased cost.
+
+To cache dependencies for a job, you'll need to use GitHub's cache action. The action retrieves a cache identified by a unique key. For more information, see actions/cache.
+
+In our case, we can create a new cache when the packages in package-lock.json file change, or when the runner's operating system changes. The cache key uses contexts and expressions to generate a key that includes the runner's operating system and a SHA-256 hash of the package-lock.json file.
+
+You should include the following snippet of code before installing the dependencies:
+    - name: Cache dependencies
+      uses: actions/cache@v2
+      with:
+        path: |
+          **/node_modules
+        key: ${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+The key is required. It is the key created when saving a cache and the key used to search for a cache. Keys have a maximum length of 512 characters.
+
+The path is required. It is the file path on the runner to cache or restore. This can be an absolute path or relative to the working directory. The path input must be a directory. You cannot cache a single file.
+
+The restore-keys is an optional parameter. It is an ordered list of alternative keys to use for finding the cache if no cache hit occurred for key.
+
+The cache action will attempt to restore a cache based on the key you provide. When the action finds a cache, the action restores the cached files to the path you configure. If there is no exact match, the action creates a new cache entry if the job completes successfully. The new cache will use the key you provided and contains the files in the path directory.
+
+References
+https://github.com/features/actions
+https://www.codecov.io/
+https://github.com/codecov/codecov-action
+https://pages.github.com/
+https://create-react-app.dev/docs/deployment#github-pages
+https://shields.io/
+https://help.github.com/pt/actions/configuring-and-managing-workflows/caching-dependencies-to-speed-up-workflows
+https://github.com/actions/cache
+Top comments (11)
+
+Subscribe
+pic
+Add to the discussion
+ 
+ 
+nicksettler profile image
+NickSettler
+•
+Jun 19 '20
+
+Have you thought about adding cache for dependencies? For example, caching node_modules folder
+
+
+5
+ likes
+Like
+Reply
+ 
+ 
+dyarleniber profile image
+Dyarlen Iber 
+•
+Jun 19 '20
+
+It's a great suggestion, thank you. I'll read more about caching on GH Actions and update this post.
+
+
+1
+ like
+Like
+Reply
+ 
+ 
+nicksettler profile image
+NickSettler
+•
+Jun 19 '20
+
+I have used cache in GitHub Actions in this project
+Check it out if you want
+github.com/NickSettler/bot.settler...
+
+
+4
+ likes
+Like
+Thread
+ 
+niteshkumar2000 profile image
+Niteshkumar
+•
+Dec 22 '20
+
+Hello, thanks for referencing this, I was exactly searching for this.
+I cherry-picked and gave authorship to you here :)
+github.com/niteshkumar2000/Real-Ti...
+
+
+Like
+Reply
+ 
+ 
+eomm profile image
+Manuel Spigolon
+•
+Mar 14 '21
+
+Why it is necessary to create a new secret token when the GITHUB_TOKEN seems to have all the mandatory scopes?
+
+I have tried and it won't work, but I would like to know if someone has an answer for that
+
+
+1
+ like
+Like
+Reply
+ 
+ 
+boly38 profile image
+Brice
+•
+Mar 7 '21
+
+Hi, a little question,
+you say
+
+The predeploy script will run automatically before deploy is run
+
+why does you final yml contains a build step before a deploy step if deploy automatically run predeploy (build) ?
+
+
+Like
+Reply
+ 
+ 
+tlylt profile image
+Liu Yongliang
+•
+May 10 '21
+
+Thanks!
+
+Just a note for those using yarn instead of npm: you can replace the use of the word npm in the examples above with yarn and it should still work fine.
+
+
+1
+ like
+Like
+Reply
+ 
+ 
+justtrey profile image
+just-trey
+•
+Jun 21 '20
+
+I just read this after I wrote something similar just today. You are at my Part 2 which I still have to write. This is a great topic!
+
+
+1
+ like
+Like
+Reply
+ 
+ 
+kenbigler profile image
+Ken Bigler
+•
+Feb 23 '21 • Edited on Feb 23
+
+Awesome article! 1 note to anyone wondering, you need to rebase any currently open PRs for the checks tab to start working.
+
+
+1
+ like
+Like
+Reply
+ 
+ 
+pelurunyasar profile image
+pelurunyasar
+•
+Sep 12
+
+where does it set the .env? I have a problem if the .env doesn't read according to what I input.
+
+
+Like
+Reply
+ 
+ 
+theapplefreak profile image
+TheAppleFreak
+•
+Mar 15 '21
+
+If I might ask, why is there a predeploy build script in package.json when there's a dedicated build task in the workflow file?
+
+
+Like
+Reply
+Code of Conduct • Report abuse
+profile
+GitHub
+PROMOTED
+
+GitHub Universe
+
+Your favorite AI topics, all in one place ✨
+This just in: curated agendas that'll help devs stay ahead of the curve on AI and productivity. Join us at GitHub Universe on Nov. 8-9 to find out more.
+
+Get free virtual tickets
+
+Read next
+ctrlcoding profile image
+How To Create A Simple Audio-player in HTML, JavaScript, and CSS
+CtrlCoding - Oct 24
+
+rowsanali profile image
+Using Promises and Async/Await in JavaScript
+Rowsan Ali - Nov 3
+
+jon_snow789 profile image
+Bad UI Battels: Developers are competing who create the worst UI
+Jon Snow - Nov 2
+
+abdrzqsalihu profile image
+A Comprehensive Guide on How to Use Git and GitHub for Beginners
+Abdulrazaq Salihu - Nov 2
+
+
+Dyarlen Iber
+Follow
+I'm a Full Stack Developer, with 8+ years of hands-on experience in software development, passionate about web development.
+JOINED
+Oct 19, 2019
+More from Dyarlen Iber
+Parallel tests in Node.js with Jest and MongoDB (without mocking)
+#testing #mongodb #javascript
+DEV Community
+
+🌚 Life is too short to browse without dark mode
+You can customize your theme, font, and more by creating your DEV account.
+
+name: CI/CD
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run the tests and generate coverage report
+      run: npm test -- --coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+
+    - name: Build
+      run: npm run build
+
+    - name: Deploy
+      run: |
+        git config --global user.name $user_name
+        git config --global user.email $user_email
+        git remote set-url origin https://${github_token}@github.com/${repository}
+        npm run deploy
+      env:
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        github_token: ${{ secrets.ACTIONS_DEPLOY_ACCESS_TOKEN }}
+        repository: ${{ github.repository }}
+        REACT_APP_GOOGLE_API_KEY: ${{ secrets.REACT_APP_GOOGLE_API_KEY }}
