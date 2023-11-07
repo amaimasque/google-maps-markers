@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/google-maps-marker/static/css/main.f855e6bc.css",
+    "main.js": "/google-maps-marker/static/js/main.13c9d39c.js",
+    "static/js/787.f4610877.chunk.js": "/google-maps-marker/static/js/787.f4610877.chunk.js",
+    "index.html": "/google-maps-marker/index.html",
+    "main.f855e6bc.css.map": "/google-maps-marker/static/css/main.f855e6bc.css.map",
+    "main.13c9d39c.js.map": "/google-maps-marker/static/js/main.13c9d39c.js.map",
+    "787.f4610877.chunk.js.map": "/google-maps-marker/static/js/787.f4610877.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.f855e6bc.css",
+    "static/js/main.13c9d39c.js"
+  ]
+}
