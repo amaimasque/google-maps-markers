@@ -1,6 +1,13 @@
-# Getting Started with Create React App
+# Google Maps Markers
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A simple react app for demonstration of [Google Maps integration](https://developers.google.com/maps/documentation/javascript) with markers & labels.
+
+Made with React & Firebase Firestore for saving markers. This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+
+[![My Skills](https://skillicons.dev/icons?i=react,firebase)](https://skillicons.dev)
+
+Integrated with **third-party libraries** like:
+- [React Google Maps](https://github.com/JustFly1984/react-google-maps-api)
 
 ## Available Scripts
 
